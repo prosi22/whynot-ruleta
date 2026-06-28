@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="theme-color" content="#0d0d0d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Why Not Barbershop · Gana tu Premio</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Bebas+Neue&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:#0d0d0d; --surface:#1a1a1a; --surface2:#242424; --surface3:#2e2e2e;
+    --border:rgba(255,255,255,0.1); --border-hi:rgba(212,175,55,0.4);
+    --white:#ffffff; --muted:#a0a0a0; --muted2:#6a6a6a;
+    --gold:#D4AF37; --gold-lt:#F0D060; --gold-dim:rgba(212,175,55,0.15);
+    --green:#3dba6e; --green-dim:rgba(61,186,110,0.15);
+    --red:#e05050; --google:#4285F4;
+    --radius:18px; --radius-sm:12px; --radius-xs:8px;
+    --display:'Bebas Neue',sans-serif;
+  }
+  html { height:100%; background:#0d0d0d; }
+  body { height:100%; min-height:100vh; background:#0d0d0d !important; font-family:'Inter',sans-serif; color:#fff; overflow:hidden; -webkit-text-fill-color:#fff; }
+
+  /* TOP BAR */
+  .topbar { position:fixed; top:0; left:0; right:0; height:54px; display:flex; align-items:center; justify-content:space-between; padding:0 18px; background:rgba(13,13,13,0.97); border-bottom:1px solid var(--border-hi); z-index:200; backdrop-filter:blur(10px); }
+  .brand { display:flex; align-items:center; gap:10px; }
+  .brand-logo { font-family:var(--display); font-size:20px; letter-spacing:0.08em; color:var(--gold); line-height:1; }
+  .brand-sep { width:1px; height:18px; background:var(--border); }
+  .brand-sub { font-size:10px; font-weight:600; color:var(--muted); letter-spacing:0.12em; text-transform:uppercase; }
+  .topbar-right { display:flex; align-items:center; gap:8px; }
+  .sync-dot { width:7px; height:7px; border-radius:50%; background:#555; transition:background 0.3s; flex-shrink:0; }
+  .sync-dot.ok  { background:var(--green); box-shadow:0 0 6px rgba(61,186,110,0.6); }
+  .sync-dot.err { background:var(--red); }
+  .sync-dot.loading { background:var(--gold); animation:syncPulse 1s ease-in-out infinite; }
+  @keyframes syncPulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .admin-btn { background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius-xs); padding:7px 13px; font-size:11px; font-weight:600; color:var(--muted); cursor:pointer; transition:all 0.2s; }
+  .admin-btn:hover { color:var(--gold); border-color:var(--border-hi); }
+
+  /* PROGRESS DOTS */
+  .progress-dots { position:fixed; top:66px; left:50%; transform:translateX(-50%); display:flex; gap:6px; z-index:100; }
+  .dot { width:6px; height:6px; border-radius:50%; background:var(--surface3); transition:all 0.3s; }
+  .dot.active { width:22px; border-radius:3px; background:var(--gold); }
+  .dot.done { background:var(--green); }
+
+  /* SCREENS */
+  .screen { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:80px 20px 52px; opacity:0; pointer-events:none; transition:opacity 0.35s ease,transform 0.35s ease; transform:translateY(16px); overflow-y:auto; background:#0d0d0d !important; -webkit-overflow-scrolling:touch; }
+  .screen.active { opacity:1; pointer-events:all; transform:translateY(0); }
+  .screen.exit   { opacity:0; transform:translateY(-14px); }
+
+  /* SCREEN 1 */
+  .biz-card { width:100%; max-width:360px; background:#1a1a1a !important; border:1px solid rgba(212,175,55,0.4); border-radius:var(--radius); padding:28px 24px 24px; margin-bottom:18px; text-align:center; box-shadow:0 0 40px rgba(212,175,55,0.06); }
+  .biz-avatar { width:76px; height:76px; border-radius:16px; background:#242424 !important; border:2px solid rgba(212,175,55,0.4); margin:0 auto 14px; display:flex; align-items:center; justify-content:center; font-size:32px; }
+  .biz-name { font-family:var(--display); font-size:26px; letter-spacing:0.06em; color:#fff !important; -webkit-text-fill-color:#fff !important; margin-bottom:4px; }
+  .biz-type { font-size:12px; color:#a0a0a0 !important; -webkit-text-fill-color:#a0a0a0 !important; margin-bottom:14px; }
+  .stars-row { display:flex; justify-content:center; gap:3px; margin-bottom:4px; }
+  .star { font-size:18px; color:var(--gold); }
+  .review-count { font-size:12px; color:#a0a0a0 !important; -webkit-text-fill-color:#a0a0a0 !important; }
+  .divider { width:100%; height:1px; background:rgba(255,255,255,0.08); margin:18px 0; }
+  .hook-text { font-size:16px; font-weight:700; color:#fff !important; -webkit-text-fill-color:#fff !important; margin-bottom:6px; }
+  .hook-sub  { font-size:13px; color:#a0a0a0 !important; -webkit-text-fill-color:#a0a0a0 !important; line-height:1.55; }
+  .hook-sub strong { color:#F0D060 !important; -webkit-text-fill-color:#F0D060 !important; font-weight:700; }
+  .btn-google { width:100%; max-width:360px; background:var(--google); color:#fff; border:none; border-radius:var(--radius-sm); padding:17px 24px; font-size:15px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px; box-shadow:0 6px 28px rgba(66,133,244,0.4); animation:pulse-blue 2.2s ease-out infinite; transition:transform 0.15s; }
+  .btn-google:active { transform:scale(0.97); }
+  .btn-google svg { width:20px; height:20px; flex-shrink:0; }
+  @keyframes pulse-blue { 0%{box-shadow:0 6px 28px rgba(66,133,244,0.4),0 0 0 0 rgba(66,133,244,0.35)} 70%{box-shadow:0 6px 28px rgba(66,133,244,0.4),0 0 0 14px rgba(66,133,244,0)} 100%{box-shadow:0 6px 28px rgba(66,133,244,0.4),0 0 0 0 rgba(66,133,244,0)} }
+  .skip-link { margin-top:14px; font-size:12px; color:var(--muted2); cursor:pointer; text-decoration:underline; text-underline-offset:3px; }
+
+  /* SCREEN 2 - WHEEL */
+  .wheel-header { text-align:center; margin-bottom:18px; }
+  .wheel-badge { display:inline-flex; align-items:center; gap:6px; background:var(--gold-dim); border:1px solid var(--border-hi); border-radius:100px; padding:5px 14px; font-size:11px; font-weight:700; color:var(--gold-lt); letter-spacing:0.06em; text-transform:uppercase; margin-bottom:10px; }
+  .wheel-title { font-family:var(--display); font-size:38px; letter-spacing:0.05em; color:#fff !important; -webkit-text-fill-color:#fff !important; margin-bottom:5px; line-height:1; }
+  .wheel-sub { font-size:13px; color:var(--muted); }
+  .wheel-wrapper { position:relative; width:min(310px,84vw); height:min(310px,84vw); margin:0 auto 14px; }
+  canvas#wheel { width:100%; height:100%; filter:drop-shadow(0 0 24px rgba(212,175,55,0.22)); }
+  .wheel-pointer { position:absolute; top:-13px; left:50%; transform:translateX(-50%); width:0; height:0; border-left:12px solid transparent; border-right:12px solid transparent; border-top:24px solid var(--gold); filter:drop-shadow(0 2px 6px rgba(212,175,55,0.7)); z-index:10; }
+  .wheel-center-btn { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:66px; height:66px; border-radius:50%; background:#0d0d0d; border:2.5px solid var(--gold); color:var(--gold-lt); font-family:var(--display); font-size:13px; letter-spacing:0.06em; cursor:pointer; display:flex; align-items:center; justify-content:center; text-align:center; line-height:1.1; z-index:10; box-shadow:0 0 0 5px rgba(212,175,55,0.1); transition:background 0.2s,transform 0.15s; }
+  .wheel-center-btn:hover { background:var(--gold-dim); }
+  .wheel-center-btn:active { transform:translate(-50%,-50%) scale(0.92); }
+  .wheel-center-btn.spinning { cursor:not-allowed; opacity:0.45; }
+
+  /* SCREEN 3 - PRIZE */
+  .prize-emoji-big { font-size:70px; margin-bottom:16px; animation:bounceIn 0.55s cubic-bezier(0.34,1.56,0.64,1) both; }
+  @keyframes bounceIn { from{transform:scale(0.25);opacity:0} to{transform:scale(1);opacity:1} }
+  .prize-eyebrow { font-size:11px; font-weight:700; color:#D4AF37; letter-spacing:0.14em; text-transform:uppercase; margin-bottom:8px; }
+  .prize-title { font-family:var(--display); font-size:34px; letter-spacing:0.04em; color:#fff !important; -webkit-text-fill-color:#fff !important; text-shadow:0 2px 20px rgba(0,0,0,0.8); text-align:center; margin-bottom:10px; background:transparent !important; padding:0 8px; }
+  .prize-desc { font-size:15px; color:#d0d0d0 !important; -webkit-text-fill-color:#d0d0d0 !important; text-align:center; margin-bottom:24px; line-height:1.6; max-width:300px; background:transparent !important; }
+  .code-box { width:100%; max-width:340px; background:#1a3d2b !important; border:1.5px solid rgba(61,186,110,0.5); border-radius:var(--radius-sm); padding:18px 22px; text-align:center; margin-bottom:20px; }
+  .code-label { font-size:10px; font-weight:700; color:#3dba6e; letter-spacing:0.12em; text-transform:uppercase; margin-bottom:8px; }
+  .code-value { font-family:var(--display); font-size:30px; letter-spacing:0.2em; color:#fff !important; -webkit-text-fill-color:#fff !important; margin-bottom:5px; }
+  .code-copy { font-size:12px; color:#3dba6e; cursor:pointer; text-decoration:underline; text-underline-offset:3px; font-weight:600; }
+  .code-expiry { font-size:11px; color:#888; margin-top:10px; }
+
+  /* BUTTONS */
+  .btn-primary { width:100%; max-width:340px; background:var(--gold); color:#0d0d0d; border:none; border-radius:var(--radius-sm); padding:17px 24px; font-size:15px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; transition:transform 0.15s,background 0.2s; margin-bottom:10px; }
+  .btn-primary:hover { background:var(--gold-lt); }
+  .btn-primary:active { transform:scale(0.97); }
+  .btn-secondary { width:100%; max-width:340px; background:#1a1a1a; color:#c0c0c0; border:1px solid rgba(255,255,255,0.15); border-radius:var(--radius-sm); padding:14px 24px; font-size:13px; font-weight:600; cursor:pointer; transition:all 0.2s; }
+  .btn-secondary:hover { border-color:#888; color:#fff; }
+
+  /* CONFETTI */
+  .confetti-piece { position:fixed; width:7px; height:7px; border-radius:2px; pointer-events:none; animation:confettiFall 2.6s ease-in forwards; z-index:999; }
+  @keyframes confettiFall { 0%{transform:translateY(-20px) rotate(0deg);opacity:1} 85%{opacity:1} 100%{transform:translateY(100vh) rotate(720deg);opacity:0} }
+
+  /* TOAST */
+  .toast { position:fixed; bottom:26px; left:50%; transform:translateX(-50%) translateY(80px); background:var(--surface2); border:1px solid var(--border-hi); border-radius:100px; padding:11px 20px; font-size:13px; font-weight:600; color:#fff; white-space:nowrap; transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1); z-index:9999; }
+  .toast.show { transform:translateX(-50%) translateY(0); }
+
+  /* POWERED BY */
+  .powered-by { position:fixed; bottom:8px; left:50%; transform:translateX(-50%); font-size:10px; color:var(--muted2); white-space:nowrap; z-index:100; }
+  .powered-by strong { color:var(--muted); }
+
+  /* ═══ ADMIN PANEL ═══ */
+  .admin-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.78); z-index:300; opacity:0; pointer-events:none; transition:opacity 0.3s; backdrop-filter:blur(5px); }
+  .admin-overlay.open { opacity:1; pointer-events:all; }
+  .admin-panel { position:fixed; top:0; right:0; bottom:0; width:min(430px,100vw); background:#1a1a1a; border-left:1px solid var(--border-hi); z-index:400; transform:translateX(100%); transition:transform 0.35s cubic-bezier(0.4,0,0.2,1); overflow-y:auto; display:flex; flex-direction:column; }
+  .admin-panel.open { transform:translateX(0); }
+  .admin-header { padding:18px 20px 16px; border-bottom:1px solid var(--border); position:sticky; top:0; background:#1a1a1a; z-index:10; display:flex; align-items:center; justify-content:space-between; }
+  .admin-header-title { font-size:15px; font-weight:800; color:#fff; }
+  .admin-header-sub   { font-size:11px; color:var(--muted); margin-top:2px; }
+  .admin-close { background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius-xs); width:34px; height:34px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:16px; color:var(--muted); transition:color 0.2s; }
+  .admin-close:hover { color:#fff; }
+  .admin-body { padding:20px; flex:1; }
+  .admin-section { margin-bottom:26px; }
+  .admin-section-title { font-size:10px; font-weight:700; color:var(--gold); letter-spacing:0.12em; text-transform:uppercase; margin-bottom:12px; }
+
+  /* STATS */
+  .stats-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+  .stat-card { background:#242424; border:1px solid var(--border); border-radius:var(--radius-sm); padding:14px 10px; text-align:center; }
+  .stat-value { font-family:var(--display); font-size:26px; letter-spacing:0.04em; color:#fff; }
+  .stat-label { font-size:10px; color:var(--muted); margin-top:3px; font-weight:500; }
+
+  /* SUPABASE SETUP CARD */
+  .setup-card { background:#242424; border:1px solid var(--border-hi); border-radius:var(--radius-sm); padding:16px; margin-bottom:16px; }
+  .setup-card-title { font-size:13px; font-weight:700; color:var(--gold); margin-bottom:8px; display:flex; align-items:center; gap:6px; }
+  .setup-card-body { font-size:12px; color:#c0c0c0; line-height:1.6; }
+  .setup-card-body a { color:var(--gold-lt); text-decoration:none; }
+  .setup-card-body code { background:#0d0d0d; border:1px solid var(--border); border-radius:4px; padding:2px 6px; font-size:11px; color:#fff; font-family:monospace; display:block; margin:6px 0; word-break:break-all; }
+  .setup-step { display:flex; gap:10px; margin-bottom:10px; align-items:flex-start; }
+  .setup-num { width:20px; height:20px; border-radius:50%; background:var(--gold); color:#0d0d0d; font-size:10px; font-weight:900; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px; }
+  .cloud-status { display:flex; align-items:center; gap:8px; background:#242424; border:1px solid var(--border); border-radius:var(--radius-xs); padding:10px 14px; margin-bottom:14px; font-size:12px; color:var(--muted); }
+  .cloud-status.connected { border-color:rgba(61,186,110,0.4); color:#3dba6e; }
+  .cloud-status.error     { border-color:rgba(224,80,80,0.4); color:var(--red); }
+
+  /* FORM */
+  .field-group { margin-bottom:13px; }
+  .field-label { font-size:11px; font-weight:600; color:var(--muted); margin-bottom:5px; display:block; }
+  .field-input { width:100%; background:#242424; border:1px solid var(--border); border-radius:var(--radius-xs); padding:10px 12px; font-size:13px; color:#fff; font-family:inherit; outline:none; transition:border-color 0.2s; }
+  .field-input:focus { border-color:var(--border-hi); }
+  .field-input::placeholder { color:var(--muted2); }
+  .field-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+
+  /* PRIZE EDITOR */
+  .prize-editor-list { display:flex; flex-direction:column; gap:10px; }
+  .prize-row { background:#242424; border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px; }
+  .prize-row-top { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+  .prize-emoji-input { width:42px; height:42px; background:#0d0d0d; border:1px solid var(--border); border-radius:var(--radius-xs); text-align:center; font-size:20px; color:#fff; font-family:inherit; outline:none; }
+  .prize-name-input { flex:1; background:#0d0d0d; border:1px solid var(--border); border-radius:var(--radius-xs); padding:8px 10px; font-size:13px; font-weight:600; color:#fff; font-family:inherit; outline:none; }
+  .prize-name-input:focus { border-color:var(--border-hi); }
+  .prize-delete { background:none; border:none; color:var(--muted2); cursor:pointer; font-size:15px; padding:4px; transition:color 0.2s; }
+  .prize-delete:hover { color:var(--red); }
+  .prize-row-bottom { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .prize-field-label { font-size:10px; color:var(--muted); margin-bottom:4px; font-weight:600; }
+  .prize-field-input { width:100%; background:#0d0d0d; border:1px solid var(--border); border-radius:6px; padding:6px 9px; font-size:12px; color:#fff; font-family:inherit; outline:none; }
+  .prize-field-input:focus { border-color:var(--border-hi); }
+  .prob-row { display:flex; align-items:center; gap:8px; margin-top:9px; }
+  .prob-label { font-size:10px; color:var(--muted); font-weight:600; white-space:nowrap; }
+  .prob-slider { flex:1; accent-color:var(--gold); cursor:pointer; }
+  .prob-value { font-size:11px; font-weight:700; color:var(--gold); min-width:30px; text-align:right; }
+  .add-prize-btn { width:100%; background:transparent; border:1px dashed rgba(212,175,55,0.25); border-radius:var(--radius-sm); padding:12px; font-size:13px; font-weight:600; color:var(--muted2); cursor:pointer; transition:all 0.2s; margin-top:8px; }
+  .add-prize-btn:hover { border-color:var(--gold); color:var(--gold); }
+  .save-btn { width:100%; background:var(--gold); color:#0d0d0d; border:none; border-radius:var(--radius-sm); padding:15px; font-size:14px; font-weight:800; cursor:pointer; transition:opacity 0.2s,transform 0.15s; margin-top:4px; }
+  .save-btn:active { transform:scale(0.98); }
+  .save-btn:disabled { opacity:0.5; cursor:not-allowed; }
+
+  /* LOGS */
+  .log-list { display:flex; flex-direction:column; gap:6px; max-height:200px; overflow-y:auto; }
+  .log-item { display:flex; align-items:center; gap:10px; background:#242424; border-radius:var(--radius-xs); padding:8px 10px; font-size:11px; }
+  .log-emoji { font-size:16px; }
+  .log-prize { font-weight:600; color:#fff; }
+  .log-time  { color:var(--muted); margin-top:1px; }
+  .log-empty { text-align:center; color:var(--muted2); font-size:12px; padding:18px; }
+
+  /* LOGIN */
+  .login-box { width:100%; max-width:300px; text-align:center; }
+  .login-icon  { font-size:44px; margin-bottom:14px; }
+  .login-title { font-family:var(--display); font-size:28px; letter-spacing:0.05em; color:#fff; margin-bottom:5px; }
+  .login-sub   { font-size:13px; color:var(--muted); margin-bottom:26px; line-height:1.5; }
+  .login-input { width:100%; background:#1a1a1a; border:1px solid var(--border-hi); border-radius:var(--radius-sm); padding:14px 16px; font-size:16px; color:#fff; font-family:inherit; outline:none; text-align:center; letter-spacing:0.15em; transition:border-color 0.2s; margin-bottom:13px; }
+  .login-input:focus { border-color:var(--gold); }
+  .login-btn { width:100%; background:var(--gold); color:#0d0d0d; border:none; border-radius:var(--radius-sm); padding:14px; font-size:14px; font-weight:800; cursor:pointer; }
+  .login-error { font-size:12px; color:var(--red); margin-top:10px; opacity:0; transition:opacity 0.3s; }
+  .login-error.show { opacity:1; }
+  .hint-tag { display:inline-block; background:#242424; border:1px solid var(--border); border-radius:6px; padding:4px 9px; font-size:10px; color:var(--muted); margin-top:10px; }
+
+  /* TABS */
+  .admin-tabs { display:flex; gap:0; border-bottom:1px solid var(--border); margin-bottom:20px; }
+  .admin-tab { flex:1; padding:10px; font-size:12px; font-weight:600; color:var(--muted); text-align:center; cursor:pointer; border-bottom:2px solid transparent; transition:all 0.2s; background:none; border-top:none; border-left:none; border-right:none; }
+  .admin-tab.active { color:var(--gold); border-bottom-color:var(--gold); }
+  .tab-panel { display:none; }
+  .tab-panel.active { display:block; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-logo">WHY NOT</div>
+    <div class="brand-sep"></div>
+    <div class="brand-sub">Barbershop</div>
+  </div>
+  <div class="topbar-right">
+    <div class="sync-dot" id="syncDot" title="Estado sincronización"></div>
+    <button class="admin-btn" onclick="openAdminLogin()">⚙️ Panel</button>
+  </div>
+</div>
+
+<!-- PROGRESS DOTS -->
+<div class="progress-dots" id="dots">
+  <div class="dot active" id="dot0"></div>
+  <div class="dot" id="dot1"></div>
+  <div class="dot" id="dot2"></div>
+</div>
+
+<!-- SCREEN 1 — RESEÑA -->
+<div class="screen active" id="screen1">
+  <div class="biz-card">
+    <div class="biz-avatar" id="bizAvatar">✂️</div>
+    <div class="biz-name" id="bizName">WHY NOT BARBERSHOP</div>
+    <div class="biz-type" id="bizType">Barbería premium · Plaza de la Revolución 5, Barcelona</div>
+    <div class="stars-row"><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span></div>
+    <div class="review-count" id="bizReviewCount">4.9 · 312 reseñas en Google</div>
+    <div class="divider"></div>
+    <div class="hook-text">¿Qué tal tu experiencia? 💈</div>
+    <div class="hook-sub">Deja tu reseña en Google y <strong>gana un premio exclusivo</strong> al instante.</div>
+  </div>
+  <button class="btn-google" onclick="goToWheel()">
+    <svg viewBox="0 0 24 24" fill="none">
+      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#fff"/>
+      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#fff"/>
+      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#fff"/>
+      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#fff"/>
+    </svg>
+    Dejar reseña en Google
+  </button>
+  <div class="skip-link" onclick="goToWheel()">Ya dejé mi reseña → ir al premio</div>
+</div>
+
+<!-- SCREEN 2 — RULETA -->
+<div class="screen" id="screen2">
+  <div class="wheel-header">
+    <div class="wheel-badge">🏆 Premio exclusivo</div>
+    <div class="wheel-title">¡GIRA Y GANA!</div>
+    <div class="wheel-sub">Todos los premios son reales. ¡Buena suerte!</div>
+  </div>
+  <div class="wheel-wrapper">
+    <div class="wheel-pointer"></div>
+    <canvas id="wheel" width="310" height="310"></canvas>
+    <button class="wheel-center-btn" id="spinBtn" onclick="spinWheel()">GIRAR</button>
+  </div>
+  <button class="btn-primary" style="margin-top:14px;" onclick="spinWheel()">🎰 ¡Girar la ruleta!</button>
+</div>
+
+<!-- SCREEN 3 — PREMIO -->
+<div class="screen" id="screen3">
+  <div class="prize-emoji-big" id="prizeEmoji">🎁</div>
+  <div class="prize-eyebrow">¡Enhorabuena, has ganado!</div>
+  <div class="prize-title" id="prizeName">Tu premio</div>
+  <div class="prize-desc" id="prizeDesc">Muestra este código al equipo</div>
+  <div class="code-box">
+    <div class="code-label">Tu código de canje</div>
+    <div class="code-value" id="prizeCode">WN-XXXX</div>
+    <div class="code-copy" onclick="copyCode()">📋 Copiar código</div>
+    <div class="code-expiry">Válido 30 días · Un solo uso</div>
+  </div>
+  <button class="btn-primary" onclick="shareWhatsApp()">💬 Compartir por WhatsApp</button>
+  <button class="btn-secondary" onclick="restart()">← Volver al inicio</button>
+</div>
+
+<div class="toast" id="toast">✅ Listo</div>
+<div class="powered-by">Desarrollado por <strong>Sherpa Marketing Agency</strong></div>
+
+<!-- ═══ ADMIN OVERLAY ═══ -->
+<div class="admin-overlay" id="adminOverlay" onclick="closeAdmin()"></div>
+
+<!-- LOGIN PANEL -->
+<div class="admin-panel" id="adminLogin">
+  <div class="admin-header">
+    <div><div class="admin-header-title">Acceso al Panel</div><div class="admin-header-sub">Solo para el equipo</div></div>
+    <div class="admin-close" onclick="closeAdmin()">✕</div>
+  </div>
+  <div class="admin-body" style="display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;padding-top:60px;">
+    <div class="login-box">
+      <div class="login-icon">🔐</div>
+      <div class="login-title">PANEL WHY NOT</div>
+      <div class="login-sub">Contraseña de administrador para gestionar premios y configuración.</div>
+      <input class="login-input" type="password" id="loginInput" placeholder="••••••••" onkeydown="if(event.key==='Enter')checkLogin()">
+      <button class="login-btn" onclick="checkLogin()">Entrar al panel →</button>
+      <div class="login-error" id="loginError">Contraseña incorrecta</div>
+      <div class="hint-tag">Demo: contraseña <strong>sherpa</strong></div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN ADMIN PANEL -->
+<div class="admin-panel" id="adminMain">
+  <div class="admin-header">
+    <div><div class="admin-header-title">⚙️ Panel de Control</div><div class="admin-header-sub" id="adminStatusText">Cargando...</div></div>
+    <div class="admin-close" onclick="closeAdmin()">✕</div>
+  </div>
+  <div class="admin-body">
+
+    <!-- TABS -->
+    <div class="admin-tabs">
+      <button class="admin-tab active" onclick="switchTab('stats')">📊 Stats</button>
+      <button class="admin-tab" onclick="switchTab('premios')">🎁 Premios</button>
+      <button class="admin-tab" onclick="switchTab('negocio')">🏪 Negocio</button>
+      <button class="admin-tab" onclick="switchTab('config')">☁️ Nube</button>
+    </div>
+
+    <!-- TAB: STATS -->
+    <div class="tab-panel active" id="tab-stats">
+      <div class="admin-section">
+        <div class="admin-section-title">Hoy</div>
+        <div class="stats-row">
+          <div class="stat-card"><div class="stat-value" id="statScans">0</div><div class="stat-label">Escaneos</div></div>
+          <div class="stat-card"><div class="stat-value" id="statSpins">0</div><div class="stat-label">Giros</div></div>
+          <div class="stat-card"><div class="stat-value" id="statPrizes">0</div><div class="stat-label">Premios</div></div>
+        </div>
+      </div>
+      <div class="admin-section">
+        <div class="admin-section-title">Últimos giros</div>
+        <div class="log-list" id="logList"><div class="log-empty">Sin giros aún</div></div>
+      </div>
+      <button class="btn-secondary" style="margin-top:8px;" onclick="refreshLogs()">↻ Actualizar</button>
+    </div>
+
+    <!-- TAB: PREMIOS -->
+    <div class="tab-panel" id="tab-premios">
+      <div class="prize-editor-list" id="prizeEditorList"></div>
+      <button class="add-prize-btn" onclick="addPrize()">+ Añadir premio</button>
+      <button class="save-btn" style="margin-top:16px;" id="savePrizesBtn" onclick="savePrizes()">☁️ Guardar premios en la nube</button>
+    </div>
+
+    <!-- TAB: NEGOCIO -->
+    <div class="tab-panel" id="tab-negocio">
+      <div class="field-group"><label class="field-label">Emoji / Avatar</label><input class="field-input" id="cfgEmoji" placeholder="✂️" maxlength="2"></div>
+      <div class="field-group"><label class="field-label">Nombre del negocio</label><input class="field-input" id="cfgName" placeholder="Why Not Barbershop"></div>
+      <div class="field-group"><label class="field-label">Tipo · Dirección</label><input class="field-input" id="cfgType" placeholder="Barbería · Calle París, 132"></div>
+      <div class="field-row">
+        <div class="field-group"><label class="field-label">Puntuación Google</label><input class="field-input" id="cfgRating" placeholder="4.9" type="number" min="1" max="5" step="0.1"></div>
+        <div class="field-group"><label class="field-label">Nº reseñas</label><input class="field-input" id="cfgReviews" placeholder="312" type="number"></div>
+      </div>
+      <div class="field-group"><label class="field-label">URL de reseñas de Google</label><input class="field-input" id="cfgGoogleUrl" placeholder="https://g.page/r/..."></div>
+      <button class="save-btn" onclick="saveBusinessConfig()">☁️ Guardar negocio en la nube</button>
+    </div>
+
+    <!-- TAB: NUBE / SUPABASE SETUP -->
+    <div class="tab-panel" id="tab-config">
+      <div id="cloudStatusCard" class="cloud-status">
+        <span>⚪</span> <span id="cloudStatusMsg">Sin configurar</span>
+      </div>
+
+      <div class="setup-card">
+        <div class="setup-card-title">☁️ Conectar con Supabase (gratis)</div>
+        <div class="setup-card-body">
+          <div class="setup-step"><div class="setup-num">1</div><div>Ve a <a href="https://supabase.com" target="_blank">supabase.com</a> → Create new project (gratis)</div></div>
+          <div class="setup-step"><div class="setup-num">2</div><div>En el proyecto → <strong>SQL Editor</strong> → pega y ejecuta este código:<code>CREATE TABLE config (key text PRIMARY KEY, value jsonb);
+CREATE TABLE logs (id uuid DEFAULT gen_random_uuid() PRIMARY KEY, prize text, emoji text, code text, created_at timestamptz DEFAULT now());
+INSERT INTO config VALUES ('business', '{}'), ('prizes', '[]');</code></div></div>
+          <div class="setup-step"><div class="setup-num">3</div><div>Ve a <strong>Project Settings → API</strong> y copia la URL y la anon key</div></div>
+          <div class="setup-step"><div class="setup-num">4</div><div>Pégalas aquí abajo y pulsa Conectar</div></div>
+        </div>
+      </div>
+
+      <div class="field-group"><label class="field-label">Supabase URL</label><input class="field-input" id="cfgSupabaseUrl" placeholder="https://xxxx.supabase.co"></div>
+      <div class="field-group"><label class="field-label">Supabase Anon Key</label><input class="field-input" id="cfgSupabaseKey" placeholder="eyJhbGciOiJIUzI1NiIs..."></div>
+      <button class="save-btn" onclick="connectSupabase()">🔌 Conectar y probar</button>
+      <div style="height:12px;"></div>
+      <button class="btn-secondary" onclick="disconnectSupabase()">Desconectar / usar modo offline</button>
+    </div>
+
+    <div style="height:28px;"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// DEFAULT CONFIG
+// ═══════════════════════════════════════════════
+const DEFAULT_CONFIG = {
+  emoji:'✂️', name:'WHY NOT BARBERSHOP',
+  type:'Barbería premium · Plaza de la Revolución 5, Barcelona',
+  rating:4.9, reviews:312,
+  googleUrl:'https://search.google.com/local/writereview?placeid=ChIJN1t_tDeuEmsRUsoyG83frY4'
+};
+const DEFAULT_PRIZES = [
+  {label:'10% OFF',   emoji:'🏷️',name:'10% de descuento',        desc:'En tu próxima visita. Válido en cualquier servicio.',  color:'#1a5c9e',code:'WN-DESC10',weight:30},
+  {label:'Café',      emoji:'☕',name:'Café o bebida gratis',     desc:'Te invitamos a algo al terminar.',                     color:'#7b3f00',code:'WN-CAFE01',weight:25},
+  {label:'-5€',       emoji:'💶',name:'5€ de descuento',          desc:'Cinco euros en tu próxima visita, sin mínimo.',        color:'#1a6b4a',code:'WN-5EUR',  weight:20},
+  {label:'Producto',  emoji:'🧴',name:'Producto de styling gratis',desc:'Una muestra premium para llevar a casa.',             color:'#5c3a8c',code:'WN-PROD01',weight:15},
+  {label:'20% OFF',   emoji:'🏆',name:'20% de descuento',         desc:'Premio especial: 20% en tu próxima visita.',           color:'#8c1a1a',code:'WN-DESC20',weight:5 },
+  {label:'Suerte...', emoji:'🔄',name:'¡Casi! Vuelve pronto',     desc:'Esta vez no ha tocado. ¡Te esperamos en la silla 💈', color:'#2e2e2e',code:'WN-RETRY', weight:40},
+];
+
+// ═══════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════
+let config   = {...DEFAULT_CONFIG};
+let prizes   = JSON.parse(JSON.stringify(DEFAULT_PRIZES));
+let currentScreen = 1;
+let isSpinning = false;
+let currentPrize = null;
+let currentAngle = 0;
+let ADMIN_PASS = 'sherpa';
+
+// Supabase — credenciales Why Not Barbershop (hardcoded)
+const SB_URL_DEFAULT = 'https://xeydzgzxrtwjpmadmlne.supabase.co';
+const SB_KEY_DEFAULT = 'sb_publishable_KMydc4Mi_NvVZZnKqwhLWg_BydLLBV5';
+let SB_URL = SB_URL_DEFAULT;
+let SB_KEY = SB_KEY_DEFAULT;
+let sbConnected = false;
+
+function lsGet(k,def){ try{const v=localStorage.getItem(k);return v?JSON.parse(v):def;}catch(e){return def;} }
+function lsSet(k,v){ try{localStorage.setItem(k,JSON.stringify(v));}catch(e){} }
+
+function todayKey(){ return new Date().toISOString().slice(0,10); }
+
+// ═══════════════════════════════════════════════
+// SUPABASE HELPERS
+// ═══════════════════════════════════════════════
+async function sbFetch(path, method='GET', body=null){
+  const headers={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'};
+  const res = await fetch(SB_URL+'/rest/v1/'+path,{method,headers,body:body?JSON.stringify(body):null});
+  if(!res.ok) throw new Error('HTTP '+res.status);
+  return res.json();
+}
+
+async function sbGetConfig(key){
+  const rows = await sbFetch(`config?key=eq.${key}&select=value`);
+  return rows[0]?.value ?? null;
+}
+async function sbSetConfig(key,value){
+  await sbFetch(`config?key=eq.${key}`,'PATCH',{value});
+}
+async function sbInsertLog(entry){
+  await sbFetch('logs','POST',{prize:entry.prize,emoji:entry.emoji,code:entry.code});
+}
+async function sbGetLogs(){
+  return await sbFetch('logs?select=*&order=created_at.desc&limit=30');
+}
+
+// ═══════════════════════════════════════════════
+// SYNC DOT
+// ═══════════════════════════════════════════════
+function setSyncDot(state){ // 'ok','err','loading','off'
+  const d=document.getElementById('syncDot');
+  d.className='sync-dot'+(state==='off'?'':' '+state);
+}
+
+// ═══════════════════════════════════════════════
+// INIT — load from Supabase or localStorage
+// ═══════════════════════════════════════════════
+async function init(){
+  // Override with any saved custom credentials, else use hardcoded defaults
+  SB_URL = lsGet('wn_sb_url', SB_URL_DEFAULT);
+  SB_KEY = lsGet('wn_sb_key', SB_KEY_DEFAULT);
+
+  setSyncDot('loading');
+  try {
+    const [biz,priz] = await Promise.all([sbGetConfig('business'),sbGetConfig('prizes')]);
+    if(biz && Object.keys(biz).length) config = {...DEFAULT_CONFIG,...biz};
+    if(priz && Array.isArray(priz) && priz.length) prizes = priz;
+    sbConnected = true;
+    setSyncDot('ok');
+  } catch(e){
+    sbConnected = false;
+    setSyncDot('err');
+    // fallback to localStorage cache
+    const cachedConfig = lsGet('wn_config', null);
+    const cachedPrizes = lsGet('wn_prizes', null);
+    if(cachedConfig) config = cachedConfig;
+    if(cachedPrizes) prizes = cachedPrizes;
+    console.warn('Supabase error, using local cache:', e.message);
+  }
+
+  applyConfig();
+  drawWheel(currentAngle);
+}
+
+// ═══════════════════════════════════════════════
+// APPLY CONFIG TO UI
+// ═══════════════════════════════════════════════
+function applyConfig(){
+  document.getElementById('bizAvatar').textContent = config.emoji||'✂️';
+  document.getElementById('bizName').textContent   = config.name||'';
+  document.getElementById('bizType').textContent   = config.type||'';
+  document.getElementById('bizReviewCount').textContent = (config.rating||4.9)+' · '+(config.reviews||0)+' reseñas en Google';
+}
+
+// ═══════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════
+function goToScreen(n){
+  const prev=document.getElementById('screen'+currentScreen);
+  prev.classList.add('exit');
+  setTimeout(()=>prev.classList.remove('active','exit'),320);
+  currentScreen=n;
+  setTimeout(()=>document.getElementById('screen'+n).classList.add('active'),80);
+  updateDots(n);
+}
+function updateDots(n){
+  for(let i=0;i<3;i++){
+    const d=document.getElementById('dot'+i);
+    d.classList.remove('active','done');
+    if(i+1<n)d.classList.add('done');
+    else if(i+1===n)d.classList.add('active');
+  }
+}
+function goToWheel(){
+  // increment scan counter
+  const s=lsGet('wn_stats_'+todayKey(),{scans:0,spins:0,prizes:0});
+  s.scans++; lsSet('wn_stats_'+todayKey(),s);
+  window.open(config.googleUrl||DEFAULT_CONFIG.googleUrl,'_blank');
+  setTimeout(()=>goToScreen(2),350);
+}
+function restart(){
+  isSpinning=false; currentAngle=0;
+  document.getElementById('spinBtn').classList.remove('spinning');
+  goToScreen(1); drawWheel(currentAngle);
+}
+
+// ═══════════════════════════════════════════════
+// WHEEL
+// ═══════════════════════════════════════════════
+const canvas=document.getElementById('wheel');
+const ctx=canvas.getContext('2d');
+
+function drawWheel(angle){
+  const N=prizes.length; if(!N)return;
+  const slice=(2*Math.PI)/N;
+  const cx=canvas.width/2,cy=canvas.height/2,r=cx-4;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.beginPath();ctx.arc(cx,cy,r+5,0,2*Math.PI);ctx.fillStyle='#D4AF37';ctx.fill();
+  ctx.beginPath();ctx.arc(cx,cy,r+2,0,2*Math.PI);ctx.fillStyle='#1a1a1a';ctx.fill();
+  prizes.forEach((p,i)=>{
+    const start=angle+i*slice,end=start+slice,mid=start+slice/2;
+    ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,start,end);ctx.closePath();
+    ctx.fillStyle=p.color||'#333';ctx.fill();
+    ctx.strokeStyle='rgba(0,0,0,0.3)';ctx.lineWidth=2;ctx.stroke();
+    const er=r*0.68;
+    ctx.font=`${Math.floor(r*0.13)}px sans-serif`;
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(p.emoji,cx+er*Math.cos(mid),cy+er*Math.sin(mid));
+    ctx.save();ctx.translate(cx,cy);ctx.rotate(mid);
+    ctx.textAlign='right';ctx.fillStyle='#fff';
+    ctx.font=`bold ${Math.floor(r*0.08)}px Inter,sans-serif`;
+    ctx.shadowColor='rgba(0,0,0,0.8)';ctx.shadowBlur=5;
+    ctx.fillText(p.label,r*0.54,0);ctx.restore();
+  });
+  ctx.beginPath();ctx.arc(cx,cy,r*0.18,0,2*Math.PI);
+  ctx.fillStyle='#0d0d0d';ctx.fill();
+  ctx.strokeStyle='#D4AF37';ctx.lineWidth=2;ctx.stroke();
+}
+
+function pickWeightedPrize(){
+  const w=prizes.map(p=>p.weight||10);
+  const total=w.reduce((a,b)=>a+b,0);
+  let r=Math.random()*total;
+  for(let i=0;i<w.length;i++){r-=w[i];if(r<=0)return i;}
+  return 0;
+}
+
+function spinWheel(){
+  if(isSpinning||prizes.length===0)return;
+  isSpinning=true;
+  const s=lsGet('wn_stats_'+todayKey(),{scans:0,spins:0,prizes:0});
+  s.spins++;lsSet('wn_stats_'+todayKey(),s);
+  document.getElementById('spinBtn').classList.add('spinning');
+  const N=prizes.length;
+  const prizeIndex=pickWeightedPrize();
+  currentPrize=prizes[prizeIndex];
+  const slice=(2*Math.PI)/N;
+  const targetCenter=prizeIndex*slice+slice/2;
+  const pointerAngle=-Math.PI/2;
+  const extraRot=(5+Math.floor(Math.random()*4))*2*Math.PI;
+  let normCurrent=currentAngle%(2*Math.PI);
+  let needed=pointerAngle-targetCenter-normCurrent;
+  needed=((needed%(2*Math.PI))+(2*Math.PI))%(2*Math.PI);
+  const totalRot=extraRot+needed;
+  const duration=4500+Math.random()*800;
+  const startAngle=currentAngle,startTime=performance.now();
+  function easeOut(t){return 1-Math.pow(1-t,4);}
+  function animate(now){
+    const p=Math.min((now-startTime)/duration,1);
+    currentAngle=startAngle+totalRot*easeOut(p);
+    drawWheel(currentAngle);
+    if(p<1){requestAnimationFrame(animate);}
+    else{currentAngle=startAngle+totalRot;isSpinning=false;setTimeout(showPrize,380);}
+  }
+  requestAnimationFrame(animate);
+}
+
+async function showPrize(){
+  document.getElementById('prizeEmoji').textContent=currentPrize.emoji;
+  document.getElementById('prizeName').textContent=currentPrize.name;
+  document.getElementById('prizeDesc').textContent=currentPrize.desc;
+  document.getElementById('prizeCode').textContent=currentPrize.code;
+  const isReal=currentPrize.code!=='WN-RETRY';
+  if(isReal){
+    const s=lsGet('wn_stats_'+todayKey(),{scans:0,spins:0,prizes:0});
+    s.prizes++;lsSet('wn_stats_'+todayKey(),s);
+    setTimeout(launchConfetti,300);
+  }
+  // Log to Supabase or localStorage
+  const entry={emoji:currentPrize.emoji,prize:currentPrize.name,code:currentPrize.code,time:new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})};
+  if(sbConnected){
+    try{ setSyncDot('loading'); await sbInsertLog(entry); setSyncDot('ok'); }
+    catch(e){ setSyncDot('err'); }
+  }
+  const localLogs=lsGet('wn_logs',[]);
+  localLogs.unshift(entry);
+  lsSet('wn_logs',localLogs.slice(0,50));
+  goToScreen(3);
+}
+
+// ═══════════════════════════════════════════════
+// CONFETTI
+// ═══════════════════════════════════════════════
+function launchConfetti(){
+  const colors=['#D4AF37','#F0D060','#ffffff','#3dba6e','#4285F4','#e05050'];
+  for(let i=0;i<60;i++){
+    setTimeout(()=>{
+      const p=document.createElement('div');
+      p.className='confetti-piece';
+      p.style.cssText=`left:${Math.random()*100}vw;top:-10px;background:${colors[~~(Math.random()*colors.length)]};animation-delay:${Math.random()*0.5}s;animation-duration:${2+Math.random()*1.5}s;transform:rotate(${Math.random()*360}deg)`;
+      document.body.appendChild(p);
+      setTimeout(()=>p.remove(),4500);
+    },i*28);
+  }
+}
+
+// ═══════════════════════════════════════════════
+// COPY & SHARE
+// ═══════════════════════════════════════════════
+function copyCode(){
+  const code=document.getElementById('prizeCode').textContent;
+  navigator.clipboard?.writeText(code).catch(()=>{});
+  showToast('✅ Código copiado: '+code);
+}
+function shareWhatsApp(){
+  const code=document.getElementById('prizeCode').textContent;
+  const prize=document.getElementById('prizeName').textContent;
+  const text=`💈 ¡He ganado "${prize}" en Why Not Barbershop!\n\nMi código: ${code}\n\nEscanea el QR en el mostrador para conseguir el tuyo 👇`;
+  window.open('https://wa.me/?text='+encodeURIComponent(text),'_blank');
+}
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2400);
+}
+
+// ═══════════════════════════════════════════════
+// ADMIN — LOGIN
+// ═══════════════════════════════════════════════
+function openAdminLogin(){
+  document.getElementById('adminOverlay').classList.add('open');
+  document.getElementById('adminLogin').classList.add('open');
+  document.getElementById('loginInput').value='';
+  document.getElementById('loginError').classList.remove('show');
+  setTimeout(()=>document.getElementById('loginInput').focus(),300);
+}
+function checkLogin(){
+  if(document.getElementById('loginInput').value===ADMIN_PASS){
+    document.getElementById('adminLogin').classList.remove('open');
+    openAdminMain();
+  } else {
+    document.getElementById('loginError').classList.add('show');
+    document.getElementById('loginInput').value='';
+    document.getElementById('loginInput').focus();
+  }
+}
+function closeAdmin(){
+  document.getElementById('adminOverlay').classList.remove('open');
+  document.getElementById('adminLogin').classList.remove('open');
+  document.getElementById('adminMain').classList.remove('open');
+}
+
+// ═══════════════════════════════════════════════
+// ADMIN — TABS
+// ═══════════════════════════════════════════════
+function switchTab(name){
+  document.querySelectorAll('.admin-tab').forEach((t,i)=>{
+    const tabs=['stats','premios','negocio','config'];
+    t.classList.toggle('active',tabs[i]===name);
+  });
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+}
+
+// ═══════════════════════════════════════════════
+// ADMIN — MAIN
+// ═══════════════════════════════════════════════
+function openAdminMain(){
+  document.getElementById('adminOverlay').classList.add('open');
+  document.getElementById('adminMain').classList.add('open');
+  populateAdmin();
+}
+
+function populateAdmin(){
+  // Status
+  const statusEl=document.getElementById('adminStatusText');
+  const cardEl=document.getElementById('cloudStatusCard');
+  if(sbConnected){
+    statusEl.textContent='✅ Conectado a Supabase';
+    cardEl.className='cloud-status connected';
+    document.getElementById('cloudStatusMsg').textContent='✅ Conectado — los datos se sincronizan en la nube';
+  } else if(SB_URL){
+    statusEl.textContent='⚠️ Error de conexión — modo offline';
+    cardEl.className='cloud-status error';
+    document.getElementById('cloudStatusMsg').textContent='❌ Error de conexión — revisa la URL y la key';
+  } else {
+    statusEl.textContent='📱 Modo offline (solo este dispositivo)';
+    cardEl.className='cloud-status';
+    document.getElementById('cloudStatusMsg').textContent='⚪ Sin configurar — los datos solo se guardan en este dispositivo';
+  }
+  // Stats
+  const s=lsGet('wn_stats_'+todayKey(),{scans:0,spins:0,prizes:0});
+  document.getElementById('statScans').textContent  = s.scans;
+  document.getElementById('statSpins').textContent  = s.spins;
+  document.getElementById('statPrizes').textContent = s.prizes;
+  // Business
+  document.getElementById('cfgEmoji').value     = config.emoji||'';
+  document.getElementById('cfgName').value      = config.name||'';
+  document.getElementById('cfgType').value      = config.type||'';
+  document.getElementById('cfgRating').value    = config.rating||'';
+  document.getElementById('cfgReviews').value   = config.reviews||'';
+  document.getElementById('cfgGoogleUrl').value = config.googleUrl||'';
+  // Supabase
+  document.getElementById('cfgSupabaseUrl').value = SB_URL||'';
+  document.getElementById('cfgSupabaseKey').value = SB_KEY||'';
+  renderPrizeEditor();
+  renderLogs();
+}
+
+// ═══════════════════════════════════════════════
+// PRIZE EDITOR
+// ═══════════════════════════════════════════════
+function escH(s){return(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
+
+function renderPrizeEditor(){
+  const list=document.getElementById('prizeEditorList');
+  list.innerHTML='';
+  prizes.forEach((p,i)=>{
+    const row=document.createElement('div');
+    row.className='prize-row';
+    row.innerHTML=`
+      <div class="prize-row-top">
+        <input class="prize-emoji-input" value="${p.emoji}" oninput="prizes[${i}].emoji=this.value;drawWheel(currentAngle)" maxlength="2">
+        <input class="prize-name-input" value="${escH(p.label)}" oninput="prizes[${i}].label=this.value;drawWheel(currentAngle)" placeholder="Etiqueta ruleta">
+        <input type="color" value="${p.color||'#333'}" oninput="prizes[${i}].color=this.value;drawWheel(currentAngle)" style="width:34px;height:34px;border:none;background:none;cursor:pointer;border-radius:50%;flex-shrink:0;">
+        <button class="prize-delete" onclick="deletePrize(${i})">✕</button>
+      </div>
+      <div class="prize-row-bottom">
+        <div><div class="prize-field-label">Nombre completo</div><input class="prize-field-input" value="${escH(p.name)}" oninput="prizes[${i}].name=this.value"></div>
+        <div><div class="prize-field-label">Código de canje</div><input class="prize-field-input" value="${escH(p.code)}" oninput="prizes[${i}].code=this.value"></div>
+      </div>
+      <div style="margin-top:8px;">
+        <div class="prize-field-label">Descripción para el cliente</div>
+        <input class="prize-field-input" value="${escH(p.desc)}" oninput="prizes[${i}].desc=this.value">
+      </div>
+      <div class="prob-row">
+        <span class="prob-label">Probabilidad</span>
+        <input type="range" class="prob-slider" min="1" max="100" value="${p.weight||10}" oninput="prizes[${i}].weight=+this.value;this.nextElementSibling.textContent=this.value+'%'">
+        <span class="prob-value">${p.weight||10}%</span>
+      </div>`;
+    list.appendChild(row);
+  });
+}
+function addPrize(){
+  prizes.push({label:'Nuevo',emoji:'🎁',name:'Premio nuevo',desc:'Descripción del premio.',color:'#5c3a8c',code:'WN-NEW',weight:10});
+  renderPrizeEditor();drawWheel(currentAngle);
+}
+function deletePrize(i){
+  if(prizes.length<=2){showToast('⚠️ Mínimo 2 premios');return;}
+  prizes.splice(i,1);renderPrizeEditor();drawWheel(currentAngle);
+}
+
+async function savePrizes(){
+  const btn=document.getElementById('savePrizesBtn');
+  btn.disabled=true; btn.textContent='Guardando...';
+  lsSet('wn_prizes',prizes);
+  if(sbConnected){
+    try{
+      setSyncDot('loading');
+      await sbSetConfig('prizes',prizes);
+      setSyncDot('ok');
+      showToast('☁️ Premios guardados en la nube');
+    }catch(e){
+      setSyncDot('err');
+      showToast('⚠️ Guardado local. Error nube: '+e.message);
+    }
+  } else {
+    showToast('💾 Guardado en este dispositivo');
+  }
+  btn.disabled=false; btn.textContent='☁️ Guardar premios en la nube';
+}
+
+async function saveBusinessConfig(){
+  config.emoji    = document.getElementById('cfgEmoji').value.trim()    || '✂️';
+  config.name     = document.getElementById('cfgName').value.trim()     || 'WHY NOT BARBERSHOP';
+  config.type     = document.getElementById('cfgType').value.trim()     || '';
+  config.rating   = parseFloat(document.getElementById('cfgRating').value) || 4.9;
+  config.reviews  = parseInt(document.getElementById('cfgReviews').value)  || 0;
+  config.googleUrl= document.getElementById('cfgGoogleUrl').value.trim() || DEFAULT_CONFIG.googleUrl;
+  lsSet('wn_config',config);
+  applyConfig();
+  if(sbConnected){
+    try{
+      setSyncDot('loading');
+      await sbSetConfig('business',config);
+      setSyncDot('ok');
+      showToast('☁️ Negocio guardado en la nube');
+    }catch(e){
+      setSyncDot('err');
+      showToast('⚠️ Guardado local. Error nube: '+e.message);
+    }
+  } else {
+    showToast('💾 Guardado en este dispositivo');
+  }
+}
+
+// ═══════════════════════════════════════════════
+// SUPABASE CONNECT / DISCONNECT
+// ═══════════════════════════════════════════════
+async function connectSupabase(){
+  const url=document.getElementById('cfgSupabaseUrl').value.trim().replace(/\/$/,'');
+  const key=document.getElementById('cfgSupabaseKey').value.trim();
+  if(!url||!key){showToast('⚠️ Introduce URL y Key');return;}
+  SB_URL=url; SB_KEY=key;
+  setSyncDot('loading');
+  try{
+    // Test connection
+    const rows=await sbFetch('config?select=key');
+    sbConnected=true;
+    lsSet('wn_sb_url',url);
+    lsSet('wn_sb_key',key);
+    setSyncDot('ok');
+    // Load remote config
+    const [biz,priz]=await Promise.all([sbGetConfig('business'),sbGetConfig('prizes')]);
+    if(biz&&Object.keys(biz).length){config={...DEFAULT_CONFIG,...biz};applyConfig();}
+    if(priz&&priz.length){prizes=priz;drawWheel(currentAngle);renderPrizeEditor();}
+    populateAdmin();
+    showToast('✅ Conectado a Supabase correctamente');
+  }catch(e){
+    sbConnected=false;
+    setSyncDot('err');
+    showToast('❌ Error: '+e.message+' — revisa URL y Key');
+  }
+}
+function disconnectSupabase(){
+  SB_URL=SB_URL_DEFAULT;SB_KEY=SB_KEY_DEFAULT;sbConnected=false;
+  lsSet('wn_sb_url',SB_URL_DEFAULT);lsSet('wn_sb_key',SB_KEY_DEFAULT);
+  setSyncDot('off');
+  populateAdmin();
+  showToast('📱 Modo offline activado');
+}
+
+// ═══════════════════════════════════════════════
+// LOGS
+// ═══════════════════════════════════════════════
+async function refreshLogs(){
+  let logs=[];
+  if(sbConnected){
+    try{
+      setSyncDot('loading');
+      const rows=await sbGetLogs();
+      logs=rows.map(r=>({emoji:r.emoji||'🎁',prize:r.prize,code:r.code,time:new Date(r.created_at).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})}));
+      setSyncDot('ok');
+    }catch(e){
+      setSyncDot('err');
+      logs=lsGet('wn_logs',[]);
+    }
+  } else {
+    logs=lsGet('wn_logs',[]);
+  }
+  renderLogs(logs);
+}
+function renderLogs(logs){
+  if(!logs) logs=lsGet('wn_logs',[]);
+  const list=document.getElementById('logList');
+  if(!logs.length){list.innerHTML='<div class="log-empty">Sin giros registrados aún</div>';return;}
+  list.innerHTML=logs.slice(0,25).map(l=>`
+    <div class="log-item">
+      <div class="log-emoji">${l.emoji}</div>
+      <div>
+        <div class="log-prize">${escH(l.prize)}</div>
+        <div class="log-time">${l.time}${l.code?' · '+l.code:''}</div>
+      </div>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+init();
+</script>
+</body>
+</html>
