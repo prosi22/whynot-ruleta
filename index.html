@@ -484,7 +484,7 @@ async function sbGetReviewHistory(){
 }
 
 async function sbGetLogs(){
-  return await sbFetch('logs?select=*&order=created_at.desc&limit=30&redeemed=neq.null');
+  return await sbFetch('logs?select=id,prize,emoji,code,spin_id,redeemed,redeemed_at,created_at&order=created_at.desc&limit=30');
 }
 
 // ═══════════════════════════════════════════════
@@ -976,7 +976,15 @@ async function refreshLogs(){
     try{
       setSyncDot('loading');
       const rows=await sbGetLogs();
-      logs=rows.map(r=>({emoji:r.emoji||'🎁',prize:r.prize,code:r.code,time:new Date(r.created_at).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})}));
+      logs=rows.map(r=>({
+        id:r.id,
+        emoji:r.emoji||'🎁',
+        prize:r.prize,
+        code:r.code,
+        spin_id:r.spin_id,
+        redeemed:r.redeemed||false,
+        time:new Date(r.created_at).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})
+      }));
       setSyncDot('ok');
     }catch(e){
       setSyncDot('err');
@@ -987,29 +995,38 @@ async function refreshLogs(){
   }
   renderLogs(logs);
 }
-async function redeemLog(spinId, btn){
+async function redeemLog(rowId, spinId, btn){
   if(!sbConnected){showToast('⚠️ Sin conexión a Supabase');return;}
   btn.disabled=true; btn.textContent='...';
   try{
-    await sbFetch(`logs?spin_id=eq.${spinId}`,'PATCH',{redeemed:true,redeemed_at:new Date().toISOString()});
+    // Use id (uuid) as primary key — most reliable
+    await sbFetch(`logs?id=eq.${rowId}`,'PATCH',{redeemed:true,redeemed_at:new Date().toISOString()});
     showToast('✅ Premio canjeado');
-    // Update UI instantly without full refresh
     const row = btn.closest('.log-item');
-    row.style.opacity='0.5';
-    row.querySelector('.log-prize').style.textDecoration='line-through';
-    btn.outerHTML='<span style="font-size:10px;color:#3dba6e;font-weight:700;white-space:nowrap;">✅ Canjeado</span>';
+    row.style.opacity='0.45';
+    const prizeEl = row.querySelector('.log-prize');
+    if(prizeEl) prizeEl.style.textDecoration='line-through';
+    const actionsDiv = btn.closest('div[style*="flex-direction:column"]');
+    if(actionsDiv){
+      // Replace canjear button with canjeado badge, keep delete button
+      const deleteBtn = actionsDiv.querySelector('button:last-child');
+      const badge = document.createElement('span');
+      badge.style.cssText='font-size:10px;color:#3dba6e;font-weight:700;white-space:nowrap;';
+      badge.textContent='✅ Canjeado';
+      btn.replaceWith(badge);
+    }
   }catch(e){
     btn.disabled=false; btn.textContent='Canjear';
     showToast('❌ Error: '+e.message);
   }
 }
 
-async function deleteLog(spinId, btn){
+async function deleteLog(rowId, btn){
   if(!sbConnected){showToast('⚠️ Sin conexión a Supabase');return;}
   if(!confirm('¿Eliminar este registro?')) return;
   btn.disabled=true;
   try{
-    await sbFetch(`logs?spin_id=eq.${spinId}`,'DELETE');
+    await sbFetch(`logs?id=eq.${rowId}`,'DELETE');
     showToast('🗑️ Registro eliminado');
     btn.closest('.log-item').remove();
   }catch(e){
@@ -1040,10 +1057,10 @@ function renderLogs(logs){
           : isRetry
           ? `<span style="font-size:10px;color:#555;font-weight:600;">Sin premio</span>`
           : spinId
-          ? `<button onclick="redeemLog('${escH(spinId)}',this)" style="background:#D4AF37;color:#000;border:none;border-radius:6px;padding:5px 9px;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;">Canjear</button>`
+          ? `<button onclick="redeemLog('${escH(l.id)}','${escH(spinId)}',this)" style="background:#D4AF37;color:#000;border:none;border-radius:6px;padding:5px 9px;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;">Canjear</button>`
           : ''
         }
-        ${spinId?`<button onclick="deleteLog('${escH(spinId)}',this)" style="background:transparent;color:#555;border:1px solid #333;border-radius:6px;padding:3px 7px;font-size:9px;cursor:pointer;white-space:nowrap;">🗑 Borrar</button>`:''}
+        ${l.id?`<button onclick="deleteLog('${escH(l.id)}',this)" style="background:transparent;color:#555;border:1px solid #333;border-radius:6px;padding:3px 7px;font-size:9px;cursor:pointer;white-space:nowrap;">🗑 Borrar</button>`:''}
       </div>
     </div>`;
   }).join('');
