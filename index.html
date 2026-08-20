@@ -276,6 +276,10 @@
     <div class="code-value" id="prizeCode">WN-XXXX</div>
     <div class="code-copy" onclick="copyCode()">📋 Copiar código</div>
     <div class="code-expiry">Válido 30 días · Un solo uso</div>
+    <div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.08);">
+      <div style="font-size:9px;color:#666;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px;">ID de verificación</div>
+      <div id="spinIdDisplay" style="font-family:monospace;font-size:13px;color:#666;letter-spacing:0.12em;"></div>
+    </div>
   </div>
   <button class="btn-primary" onclick="shareWhatsApp()">💬 Compartir por WhatsApp</button>
   <button class="btn-secondary" onclick="restart()">← Volver al inicio</button>
@@ -319,6 +323,7 @@
       <button class="admin-tab active" onclick="switchTab('stats')">📊 Stats</button>
       <button class="admin-tab" onclick="switchTab('premios')">🎁 Premios</button>
       <button class="admin-tab" onclick="switchTab('negocio')">🏪 Negocio</button>
+      <button class="admin-tab" onclick="switchTab('reviews')">⭐ Reseñas</button>
       <button class="admin-tab" onclick="switchTab('config')">☁️ Nube</button>
     </div>
 
@@ -357,6 +362,23 @@
       </div>
       <div class="field-group"><label class="field-label">URL de reseñas de Google</label><input class="field-input" id="cfgGoogleUrl" placeholder="https://g.page/r/..."></div>
       <button class="save-btn" onclick="saveBusinessConfig()">☁️ Guardar negocio en la nube</button>
+    </div>
+
+    <!-- TAB: RESEÑAS -->
+    <div class="tab-panel" id="tab-reviews">
+      <div class="admin-section">
+        <div class="admin-section-title">📈 Puntuación actual</div>
+        <div class="stats-row">
+          <div class="stat-card"><div class="stat-value" id="reviewRating">—</div><div class="stat-label">Puntuación</div></div>
+          <div class="stat-card"><div class="stat-value" id="reviewCount">—</div><div class="stat-label">Reseñas</div></div>
+          <div class="stat-card"><div class="stat-value" id="reviewScans">—</div><div class="stat-label">Escaneos hoy</div></div>
+        </div>
+      </div>
+      <div class="admin-section">
+        <div class="admin-section-title">🕐 Historial de puntuaciones</div>
+        <div id="reviewHistoryList" class="log-list"><div class="log-empty">Cargando...</div></div>
+      </div>
+      <button class="btn-secondary" style="margin-top:8px;" onclick="refreshReviews()">↻ Actualizar</button>
     </div>
 
     <!-- TAB: NUBE / SUPABASE SETUP -->
@@ -415,6 +437,7 @@ let prizes   = JSON.parse(JSON.stringify(DEFAULT_PRIZES));
 let currentScreen = 1;
 let isSpinning = false;
 let currentPrize = null;
+let currentSpinId = '';
 let currentAngle = 0;
 let ADMIN_PASS = 'sherpa';
 
@@ -450,8 +473,18 @@ async function sbSetConfig(key,value){
 async function sbInsertLog(entry){
   await sbFetch('logs','POST',{prize:entry.prize,emoji:entry.emoji,code:entry.code});
 }
+async function sbLogReviewSnapshot(rating, count){
+  try {
+    await sbFetch('reviews_history','POST',{rating:rating, review_count:count});
+  } catch(e){ console.warn('Review snapshot error:',e); }
+}
+
+async function sbGetReviewHistory(){
+  return await sbFetch('reviews_history?select=*&order=created_at.desc&limit=30');
+}
+
 async function sbGetLogs(){
-  return await sbFetch('logs?select=*&order=created_at.desc&limit=30');
+  return await sbFetch('logs?select=*&order=created_at.desc&limit=30&redeemed=neq.null');
 }
 
 // ═══════════════════════════════════════════════
@@ -523,9 +556,12 @@ function updateDots(n){
   }
 }
 function goToWheel(){
-  // increment scan counter
   const s=lsGet('wn_stats_'+todayKey(),{scans:0,spins:0,prizes:0});
   s.scans++; lsSet('wn_stats_'+todayKey(),s);
+  // Save rating/review snapshot to Supabase
+  if(sbConnected && config.rating && config.reviews){
+    sbLogReviewSnapshot(config.rating, config.reviews);
+  }
   window.open(config.googleUrl||DEFAULT_CONFIG.googleUrl,'_blank');
   setTimeout(()=>goToScreen(2),350);
 }
@@ -576,9 +612,20 @@ function pickWeightedPrize(){
   return 0;
 }
 
+function generateSpinId(){
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const date=new Date();
+  const mm=String(date.getMonth()+1).padStart(2,'0');
+  const dd=String(date.getDate()).padStart(2,'0');
+  let rand='';
+  for(let i=0;i<4;i++) rand+=chars[Math.floor(Math.random()*chars.length)];
+  return `WN-${mm}${dd}-${rand}`;
+}
+
 function spinWheel(){
   if(isSpinning||prizes.length===0)return;
   isSpinning=true;
+  currentSpinId = generateSpinId();
   const s=lsGet('wn_stats_'+todayKey(),{scans:0,spins:0,prizes:0});
   s.spins++;lsSet('wn_stats_'+todayKey(),s);
   document.getElementById('spinBtn').classList.add('spinning');
@@ -611,17 +658,21 @@ async function showPrize(){
   document.getElementById('prizeName').textContent=currentPrize.name;
   document.getElementById('prizeDesc').textContent=currentPrize.desc;
   document.getElementById('prizeCode').textContent=currentPrize.code;
+  document.getElementById('spinIdDisplay').textContent=currentSpinId;
   const isReal=currentPrize.code!=='WN-RETRY';
   if(isReal){
     const s=lsGet('wn_stats_'+todayKey(),{scans:0,spins:0,prizes:0});
     s.prizes++;lsSet('wn_stats_'+todayKey(),s);
     setTimeout(launchConfetti,300);
   }
-  // Log to Supabase or localStorage
-  const entry={emoji:currentPrize.emoji,prize:currentPrize.name,code:currentPrize.code,time:new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})};
+  const entry={emoji:currentPrize.emoji,prize:currentPrize.name,code:currentPrize.code,spin_id:currentSpinId,redeemed:false,time:new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})};
   if(sbConnected){
-    try{ setSyncDot('loading'); await sbInsertLog(entry); setSyncDot('ok'); }
-    catch(e){ setSyncDot('err'); }
+    try{
+      setSyncDot('loading');
+      await sbFetch('logs','POST',{prize:entry.prize,emoji:entry.emoji,code:entry.code,spin_id:currentSpinId,redeemed:false});
+      setSyncDot('ok');
+    }
+    catch(e){ setSyncDot('err'); console.warn('Log error:',e); }
   }
   const localLogs=lsGet('wn_logs',[]);
   localLogs.unshift(entry);
@@ -656,8 +707,9 @@ function copyCode(){
 function shareWhatsApp(){
   const code=document.getElementById('prizeCode').textContent;
   const prize=document.getElementById('prizeName').textContent;
-  const text=`💈 ¡He ganado "${prize}" en Why Not Barbershop!\n\nMi código: ${code}\n\nEscanea el QR en el mostrador para conseguir el tuyo 👇`;
-  window.open('https://wa.me/?text='+encodeURIComponent(text),'_blank');
+  const spinId=document.getElementById('spinIdDisplay').textContent;
+  const text=`💈 ¡He ganado "${prize}" en Why Not Barbershop!\n\nCódigo: ${code}\nID verificación: ${spinId}\n\n⚠️ Para obtener el descuento tengo que reservar mi próxima cita ahora. ¿Me podéis dar fecha y hora?\n\n✂️ Carrer del Consell de Cent, 31 · Barcelona`;
+  window.open('https://wa.me/34692951360?text='+encodeURIComponent(text),'_blank');
 }
 function showToast(msg){
   const t=document.getElementById('toast');
@@ -696,11 +748,12 @@ function closeAdmin(){
 // ═══════════════════════════════════════════════
 function switchTab(name){
   document.querySelectorAll('.admin-tab').forEach((t,i)=>{
-    const tabs=['stats','premios','negocio','config'];
+    const tabs=['stats','premios','negocio','reviews','config'];
     t.classList.toggle('active',tabs[i]===name);
   });
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
+  if(name==='reviews') refreshReviews();
 }
 
 // ═══════════════════════════════════════════════
@@ -746,6 +799,11 @@ function populateAdmin(){
   document.getElementById('cfgSupabaseKey').value = SB_KEY||'';
   renderPrizeEditor();
   renderLogs();
+  // Pre-fill review stats
+  document.getElementById('reviewRating').textContent = config.rating||'—';
+  document.getElementById('reviewCount').textContent  = config.reviews||'—';
+  const _s=lsGet('wn_stats_'+todayKey(),{scans:0,spins:0,prizes:0});
+  document.getElementById('reviewScans').textContent  = _s.scans||0;
 }
 
 // ═══════════════════════════════════════════════
@@ -836,6 +894,44 @@ async function saveBusinessConfig(){
 }
 
 // ═══════════════════════════════════════════════
+// REVIEWS HISTORY
+// ═══════════════════════════════════════════════
+async function refreshReviews(){
+  // Update current stats display
+  document.getElementById('reviewRating').textContent = config.rating||'—';
+  document.getElementById('reviewCount').textContent  = config.reviews||'—';
+  const s=lsGet('wn_stats_'+todayKey(),{scans:0,spins:0,prizes:0});
+  document.getElementById('reviewScans').textContent  = s.scans||0;
+
+  if(!sbConnected){ 
+    document.getElementById('reviewHistoryList').innerHTML='<div class="log-empty">Sin conexión a Supabase</div>';
+    return; 
+  }
+  try{
+    setSyncDot('loading');
+    const rows = await sbGetReviewHistory();
+    setSyncDot('ok');
+    const list = document.getElementById('reviewHistoryList');
+    if(!rows.length){ list.innerHTML='<div class="log-empty">Sin registros aún</div>'; return; }
+    list.innerHTML = rows.map(r=>{
+      const d = new Date(r.created_at);
+      const dateStr = d.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'2-digit'});
+      const timeStr = d.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
+      return `<div class="log-item">
+        <div class="log-emoji">⭐</div>
+        <div style="flex:1;">
+          <div class="log-prize">${r.rating} · ${r.review_count} reseñas</div>
+          <div class="log-time">${dateStr} ${timeStr}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }catch(e){
+    setSyncDot('err');
+    document.getElementById('reviewHistoryList').innerHTML='<div class="log-empty">Error: '+e.message+'</div>';
+  }
+}
+
+// ═══════════════════════════════════════════════
 // SUPABASE CONNECT / DISCONNECT
 // ═══════════════════════════════════════════════
 async function connectSupabase(){
@@ -891,18 +987,38 @@ async function refreshLogs(){
   }
   renderLogs(logs);
 }
+async function redeemLog(spinId, btn){
+  if(!sbConnected){showToast('⚠️ Sin conexión a Supabase');return;}
+  btn.disabled=true; btn.textContent='...';
+  try{
+    await sbFetch(`logs?spin_id=eq.${spinId}`,'PATCH',{redeemed:true,redeemed_at:new Date().toISOString()});
+    showToast('✅ Marcado como canjeado');
+    await refreshLogs();
+  }catch(e){
+    btn.disabled=false; btn.textContent='Canjear';
+    showToast('❌ Error: '+e.message);
+  }
+}
+
 function renderLogs(logs){
   if(!logs) logs=lsGet('wn_logs',[]);
   const list=document.getElementById('logList');
   if(!logs.length){list.innerHTML='<div class="log-empty">Sin giros registrados aún</div>';return;}
-  list.innerHTML=logs.slice(0,25).map(l=>`
-    <div class="log-item">
+  list.innerHTML=logs.slice(0,30).map(l=>{
+    const redeemed=l.redeemed||false;
+    const spinId=l.spin_id||l.spin_id||'';
+    return `
+    <div class="log-item" style="${redeemed?'opacity:0.5':''}">
       <div class="log-emoji">${l.emoji}</div>
-      <div>
-        <div class="log-prize">${escH(l.prize)}</div>
-        <div class="log-time">${l.time}${l.code?' · '+l.code:''}</div>
+      <div style="flex:1;min-width:0;">
+        <div class="log-prize" style="${redeemed?'text-decoration:line-through':''}">${escH(l.prize)}</div>
+        <div class="log-time">${l.time||''}${l.code?' · '+escH(l.code):''}</div>
+        ${spinId?`<div style="font-family:monospace;font-size:10px;color:#555;margin-top:2px;">${escH(spinId)}</div>`:''}
       </div>
-    </div>`).join('');
+      ${!redeemed&&spinId?`<button onclick="redeemLog('${escH(spinId)}',this)" style="background:#D4AF37;color:#000;border:none;border-radius:6px;padding:5px 9px;font-size:10px;font-weight:700;cursor:pointer;flex-shrink:0;">Canjear</button>`
+      : redeemed?`<span style="font-size:10px;color:#3dba6e;font-weight:700;">✅ Canjeado</span>`:''}
+    </div>`;
+  }).join('');
 }
 
 // ═══════════════════════════════════════════════
