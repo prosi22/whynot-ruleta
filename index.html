@@ -992,10 +992,28 @@ async function redeemLog(spinId, btn){
   btn.disabled=true; btn.textContent='...';
   try{
     await sbFetch(`logs?spin_id=eq.${spinId}`,'PATCH',{redeemed:true,redeemed_at:new Date().toISOString()});
-    showToast('✅ Marcado como canjeado');
-    await refreshLogs();
+    showToast('✅ Premio canjeado');
+    // Update UI instantly without full refresh
+    const row = btn.closest('.log-item');
+    row.style.opacity='0.5';
+    row.querySelector('.log-prize').style.textDecoration='line-through';
+    btn.outerHTML='<span style="font-size:10px;color:#3dba6e;font-weight:700;white-space:nowrap;">✅ Canjeado</span>';
   }catch(e){
     btn.disabled=false; btn.textContent='Canjear';
+    showToast('❌ Error: '+e.message);
+  }
+}
+
+async function deleteLog(spinId, btn){
+  if(!sbConnected){showToast('⚠️ Sin conexión a Supabase');return;}
+  if(!confirm('¿Eliminar este registro?')) return;
+  btn.disabled=true;
+  try{
+    await sbFetch(`logs?spin_id=eq.${spinId}`,'DELETE');
+    showToast('🗑️ Registro eliminado');
+    btn.closest('.log-item').remove();
+  }catch(e){
+    btn.disabled=false;
     showToast('❌ Error: '+e.message);
   }
 }
@@ -1006,17 +1024,27 @@ function renderLogs(logs){
   if(!logs.length){list.innerHTML='<div class="log-empty">Sin giros registrados aún</div>';return;}
   list.innerHTML=logs.slice(0,30).map(l=>{
     const redeemed=l.redeemed||false;
-    const spinId=l.spin_id||l.spin_id||'';
+    const spinId=l.spin_id||'';
+    const isRetry=l.code==='WN-RETRY';
     return `
-    <div class="log-item" style="${redeemed?'opacity:0.5':''}">
+    <div class="log-item" style="${redeemed?'opacity:0.45':''}">
       <div class="log-emoji">${l.emoji}</div>
       <div style="flex:1;min-width:0;">
-        <div class="log-prize" style="${redeemed?'text-decoration:line-through':''}">${escH(l.prize)}</div>
+        <div class="log-prize" style="${redeemed?'text-decoration:line-through color:#666':''}">${escH(l.prize)}</div>
         <div class="log-time">${l.time||''}${l.code?' · '+escH(l.code):''}</div>
-        ${spinId?`<div style="font-family:monospace;font-size:10px;color:#555;margin-top:2px;">${escH(spinId)}</div>`:''}
+        ${spinId?`<div style="font-family:monospace;font-size:10px;color:#444;margin-top:2px;">${escH(spinId)}</div>`:''}
       </div>
-      ${!redeemed&&spinId?`<button onclick="redeemLog('${escH(spinId)}',this)" style="background:#D4AF37;color:#000;border:none;border-radius:6px;padding:5px 9px;font-size:10px;font-weight:700;cursor:pointer;flex-shrink:0;">Canjear</button>`
-      : redeemed?`<span style="font-size:10px;color:#3dba6e;font-weight:700;">✅ Canjeado</span>`:''}
+      <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;flex-shrink:0;">
+        ${redeemed
+          ? `<span style="font-size:10px;color:#3dba6e;font-weight:700;white-space:nowrap;">✅ Canjeado</span>`
+          : isRetry
+          ? `<span style="font-size:10px;color:#555;font-weight:600;">Sin premio</span>`
+          : spinId
+          ? `<button onclick="redeemLog('${escH(spinId)}',this)" style="background:#D4AF37;color:#000;border:none;border-radius:6px;padding:5px 9px;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;">Canjear</button>`
+          : ''
+        }
+        ${spinId?`<button onclick="deleteLog('${escH(spinId)}',this)" style="background:transparent;color:#555;border:1px solid #333;border-radius:6px;padding:3px 7px;font-size:9px;cursor:pointer;white-space:nowrap;">🗑 Borrar</button>`:''}
+      </div>
     </div>`;
   }).join('');
 }
