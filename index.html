@@ -247,7 +247,7 @@
     </svg>
     Dejar reseña en Google
   </button>
-  <div class="skip-link" onclick="goToWheel()">Ya dejé mi reseña → ir al premio</div>
+  <div class="skip-link" onclick="skipToWheel()">Ya dejé mi reseña → ir al premio</div>
 </div>
 
 <!-- SCREEN 2 — RULETA -->
@@ -555,6 +555,16 @@ function updateDots(n){
     else if(i+1===n)d.classList.add('active');
   }
 }
+function skipToWheel(){
+  // Go directly to wheel without opening Google
+  const s=lsGet('wn_stats_'+todayKey(),{scans:0,spins:0,prizes:0});
+  s.scans++; lsSet('wn_stats_'+todayKey(),s);
+  if(sbConnected && config.rating && config.reviews){
+    sbLogReviewSnapshot(config.rating, config.reviews);
+  }
+  goToScreen(2);
+}
+
 function goToWheel(){
   const s=lsGet('wn_stats_'+todayKey(),{scans:0,spins:0,prizes:0});
   s.scans++; lsSet('wn_stats_'+todayKey(),s);
@@ -798,7 +808,7 @@ function populateAdmin(){
   document.getElementById('cfgSupabaseUrl').value = SB_URL||'';
   document.getElementById('cfgSupabaseKey').value = SB_KEY||'';
   renderPrizeEditor();
-  renderLogs();
+  refreshLogs(); // Always load from Supabase on open
   // Pre-fill review stats
   document.getElementById('reviewRating').textContent = config.rating||'—';
   document.getElementById('reviewCount').textContent  = config.reviews||'—';
